@@ -10,7 +10,7 @@ from libled.util.flask_on_thread import FlaskOnThread
 import json
 
 app = Flask(__name__)
-SoundInterface.content_id = 'block_test'
+SoundInterface.init('block_test')
 
 @app.route('/api/audio', methods=['POST'])
 def audio():
@@ -24,7 +24,7 @@ class LedRawTextClient(LedRunLoop):
         super(LedRawTextClient, self).__init__()
         if sys.platform == 'win32':
             sys.stdin = codecs.getreader('shift_jis')(sys.stdin) # set input codec
-        SoundInterface.content_id = 'block_test'
+        SoundInterface.init('block_test')
 
     def on_finish(self):
         pass

@@ -21,7 +21,7 @@ from libled.util.flask_on_thread import FlaskOnThread
 from libled.util.sound_interface import SoundInterface
 from PIL import Image as pimg
 
-SoundInterface.content_id = 'paint'
+SoundInterface.init('paint')
 
 
 def save_image(data, filename):

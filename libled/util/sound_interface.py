@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
-import zmq
-import requests
-import threading
 import json
+import threading
+
 import logger
+import requests
+import zmq
 from sound_pool import SoundPool
 
 # debug
@@ -15,84 +16,75 @@ class SoundInterface(object):
     def __new__(cls):
         raise NotImplementedError('Cant call this Constructor.')
 
-    domain = 'http://localhost:5701/api/'
-    content_id = ''
+    domain = 'http://localhost:5701/audio/v1/'
+    __content_id = ''
 
     pool = SoundPool(1)
 
     @classmethod
-    def close(cls):
-        SoundInterface.stop()
-        SoundInterface.pool.abort = True
-        SoundInterface.push.close()
+    def init(cls, id):
+        cls.__content_id = id
+        cls.post('init')
 
     @classmethod
-    def play(cls, id_=None, wav='', loop=False, stop=False):
-        if id_ is None:
-            id_ = SoundInterface.content_id
+    def close(cls):
+        cls.stop()
+        cls.pool.abort = True
+        # zmq
+        # SoundInterface.push.close()
+
+    @classmethod
+    def play(cls, wav='', loop=False, stop=False):
         func = 'play'
         data_ = {
-            'content_id': id_,
             'wav': wav,
             'loop': loop,
             'and_stop': stop
         }
-        SoundInterface.post(func, data_=data_)
+        cls.post(func, data_=data_)
 
     @classmethod
-    def pause(cls, id_=None):
+    def pause(cls):
         func = 'pause'
-        data_ = {
-            'content_id': id_
-        }
-        SoundInterface.post(func, data_=data_)
+        cls.post(func)
 
     @classmethod
-    def resume(cls, id_=None):
+    def resume(cls):
         func = 'resume'
-        data_ = {
-            'content_id': id_
-        }
-        SoundInterface.post(func, data_=data_)
+        cls.post(func)
 
     @classmethod
-    def stop(cls, id_=None):
+    def stop(cls):
         func = 'stop'
-        data_ = {
-            'content_id': id_
-        }
-        SoundInterface.post(func, data_=data_)
+        cls.post(func)
 
     @classmethod
-    def volume(cls, id_=None, val=0.5):
-        if id_ is None:
-            id_ = SoundInterface.content_id
+    def volume(cls, val=0.5):
         func = 'volume'
         data_ = {
-            'content_id': id_,
             'val': val
         }
-        SoundInterface.post(func, data_=data_)
+        cls.post(func, data_=data_)
 
     @classmethod
-    def post(cls, func, data_):
-        SoundInterface.pool.put({'domain': SoundInterface.domain,
-                                 'func': func,
-                                 'data': data_})
+    def post(cls, func, data_=None):
+        args = {'domain': cls.domain,
+                'func': func,
+                'id': cls.__content_id}
+        if data_ is not None:
+            args['data'] = data_
+        cls.pool.put(args)
 
     @classmethod
-    def __post_threading(cls, func, data_, on_complated):
-        th = threading.Thread(target=SoundInterface.__post_requests,
-                              args=(
-                                  SoundInterface.domain + func,
-                                  data_,
-                                  on_complated,
-                              ))
+    def __post_threading(cls, arg):
+        th = threading.Thread(target=cls.__post_requests,
+                              args=(arg,))
         th.start()
 
     @classmethod
     def __post_requests(cls, arg):
         uri_ = arg.get('domain') + arg.get('func')
+        param_ = {'content_id': arg.get('id')}
         data_ = arg.get('data')
         proxies = {
             'http': '',
@@ -101,7 +93,8 @@ class SoundInterface(object):
         timeout = 0.1
         res = requests.post(
             uri_,
-            json.dumps(data_),
+            data=json.dumps(data_),
+            params=param_,
             headers={'Content-Type': 'application/json'},
             proxies=proxies,
             timeout=timeout)
@@ -109,21 +102,26 @@ class SoundInterface(object):
 
     @classmethod
     def __post_push(cls, arg):
-        SoundInterface.push.send_json(arg)
+        cls.push.send_json(arg)
 
     @classmethod
     def _init_pool(cls):
-        SoundInterface.pool.set_work(SoundInterface.__post_push)
-        SoundInterface.pool.set_complated(
+        # zmq
+        # cls.pool.set_work(cls.__post_push)
+        # cls.pool.set_work(cls.__post_requests)
+        cls.pool.set_work(cls.__post_threading)
+        cls.pool.set_complated(
             lambda x: logger.d('post result = {}'.format(x)))
 
-    @classmethod
-    def _init_push(cls):
-        ctx = zmq.Context()
-        SoundInterface.push = ctx.socket(zmq.PUSH)
-        SoundInterface.push.connect('tcp://localhost:5751')
+    # zmq
+    # @classmethod
+    # def _init_push(cls):
+    #     ctx = zmq.Context()
+    #     cls.push = ctx.socket(zmq.PUSH)
+    #     cls.push.connect('tcp://localhost:5751')
 
 
 SoundInterface.pool.run_async()
 SoundInterface._init_pool()
-SoundInterface._init_push()
+# zmq
+# SoundInterface._init_push()

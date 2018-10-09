@@ -29,18 +29,18 @@ localhost:5701/apiに対して次のRESTをPOSTする。
   プレイヤーで再生中のすべての音楽を再開する。
 '''
 
-import time
 import json
-import traceback
 import sys
-import zmq
-from flask import Flask, request
+import time
+import traceback
+from multiprocessing.pool import ThreadPool as Pool
 from Queue import Queue
+
+import libled.util.logger as logger
+from flask import Flask, request
 from libled.simple_run_loop import SimpleRunLoop
 from libled.util.flask_on_thread import FlaskOnThread
 from libled.util.sound_player import SoundPlayer as sp
-import libled.util.logger as logger
-from multiprocessing.pool import ThreadPool as Pool
 
 
 class SoundPlayingServer(SimpleRunLoop):
@@ -90,11 +90,18 @@ class SoundPlayingServer(SimpleRunLoop):
         else:
             return None
 
-    def play(self, args):
+    def init(self, args):
         # get player
         player = self.get_player(args['content_id'], True)
         if player is None:
             logger.w('null argument content id.')
+            return
+
+    def play(self, args):
+        # get player
+        player = self.get_player(args['content_id'], False)
+        if player is None:
+            logger.w('not founded content id({}).'.format(args['content_id']))
             return
 
         # do play
@@ -166,57 +173,62 @@ tcp_port = 5701
 pull_port = 5751
 q = Queue()
 s = SoundPlayingServer()
-ctx = zmq.Context()
-pull = ctx.socket(zmq.PULL)
+# zmq
+# ctx = zmq.Context()
+# pull = ctx.socket(zmq.PULL)
+
 logger.i("Collecting updates from audio server...")
 abort = False
 
 
 def run():
-    # run_flask()
-    run_pull()
+    run_flask()
+    # zmq
+    # run_pull()
 
+# zmq
+# def run_pull():
+#     logger.d('connecting tcp://localhost:{}'.format(pull_port))
+#     pull.bind('tcp://*:{}'.format(pull_port))
+#     pool = Pool(1)
+#     pool.apply_async(parse)
+#     s.run()  # block
+#     logger.d('block out pool.')
+#     pool.close()
+#     pool.terminate()
+#     pool.join()
+#     pull.close()
 
-def run_pull():
-    logger.d('connecting tcp://localhost:{}'.format(pull_port))
-    pull.bind('tcp://*:{}'.format(pull_port))
-    pool = Pool(1)
-    pool.apply_async(parse)
-    s.run()  # block
-    logger.d('block out pool.')
-    pool.close()
-    pool.terminate()
-    pool.join()
-    pull.close()
+# zmq
+# def parse():
+#     while True:
+#         if abort:
+#             return
+#         try:
+#             msg = pull.recv_json()
+#             logger.d('pull received message = {}'.format(msg))
 
+#             func = msg.get('func')
+#             if func == 'play':
+#                 q.put({'cmd': s.play, 'args': msg.get('data')})
+#             elif func == 'stop':
+#                 q.put({'cmd': s.stop, 'args': msg.get('data')})
+#             elif func == 'volume':
+#                 q.put({'cmd': s.volume, 'args': msg.get('data')})
+#             elif func == 'pause':
+#                 q.put({'cmd': s.pause, 'args': msg.get('data')})
+#             elif func == 'resume':
+#                 q.put({'cmd': s.resume, 'args': msg.get('data')})
+#             elif func == 'init':
+#                 q.put({'cmd': s.init, 'args': msg.get('data')})
+#             else:
+#                 logger.w('not found function.')
 
-def parse():
-    while True:
-        if abort:
-            return
-        try:
-            msg = pull.recv_json()
-            logger.d('pull received message = {}'.format(msg))
-
-            func = msg.get('func')
-            if func == 'play':
-                q.put({'cmd': s.play, 'args': msg.get('data')})
-            elif func == 'stop':
-                q.put({'cmd': s.stop, 'args': msg.get('data')})
-            elif func == 'volume':
-                q.put({'cmd': s.volume, 'args': msg.get('data')})
-            elif func == 'pause':
-                q.put({'cmd': s.pause, 'args': msg.get('data')})
-            elif func == 'resume':
-                q.put({'cmd': s.resume, 'args': msg.get('data')})
-            else:
-                logger.w('not found function.')
-
-        except KeyboardInterrupt:
-            raise
-        except Exception:
-            logger.e('Unexpected error: {}'.format(str(sys.exc_info()[0])))
-            logger.e(traceback.format_exc())
+#         except KeyboardInterrupt:
+#             raise
+#         except Exception:
+#             logger.e('Unexpected error: {}'.format(str(sys.exc_info()[0])))
+#             logger.e(traceback.format_exc())
 
 
 def run_flask():
@@ -231,60 +243,64 @@ def hello_world():
     return 'Hello Audio module!'
 
 
-@app.route('/api/play', methods=['POST'])
+@app.route('/audio/v1/init', methods=['POST'])
+def init():
+    logger.i('call init rest-api audio module.\n' + str(request.data))
+    args = {'content_id': request.args.get('content_id')}
+    q.put({'cmd': s.init, 'args': args})
+
+
+@app.route('/audio/v1/play', methods=['POST'])
 def play():
     logger.i('call play rest-api audio module.\n' + str(request.data))
-    req = get_request()
-    args = {'content_id': req.get('content_id'),
-            'wav': req.get('wav'),
-            'loop': req.get('loop', False),
-            'and_stop': req.get('and_stop', False)}
+    data = get_data()
+    args = {'content_id': request.args.get('content_id'),
+            'wav': data.get('wav'),
+            'loop': data.get('loop', False),
+            'and_stop': data.get('and_stop', False)}
     q.put({'cmd': s.play, 'args': args})
     return ""
 
 
-@app.route('/api/stop', methods=['POST'])
+@app.route('/audio/v1/stop', methods=['POST'])
 def stop():
     logger.i('call stop rest-api audio module.\n' + str(request.data))
-    req = get_request()
     q.put({'cmd': s.stop,
-           'args': {'content_id': req.get('content_id')}
+           'args': {'content_id': request.args.get('content_id')}
            })
     return ""
 
 
-@app.route('/api/volume', methods=['POST'])
+@app.route('/audio/v1/volume', methods=['POST'])
 def vol():
     logger.i('call volume rest-api audio module.\n' + str(request.data))
-    req = get_request()
+    data = get_data()
     q.put({'cmd': s.volume,
-           'args': {'content_id': req.get('content_id'),
-                    'val': req.get('val', 0.5)}
+           'args': {'content_id': request.args.get('content_id'),
+                    'val': data.get('val', 1)}
            })
     return ""
 
 
-@app.route('/api/pause', methods=['POST'])
+@app.route('/audio/v1/pause', methods=['POST'])
 def pause():
     logger.i('call pause rest-api audio module.\n' + str(request.data))
-    req = get_request()
     q.put({'cmd': s.pause,
-           'args': {'content_id': req.get('content_id')}
+           'args': {'content_id': request.args.get('content_id')}
            })
     return ""
 
 
-@app.route('/api/resume', methods=['POST'])
+@app.route('/audio/v1/resume', methods=['POST'])
 def resume():
     logger.i('call resume rest-api audio module.\n' + str(request.data))
-    req = get_request()
     q.put({'cmd': s.resume,
-           'args': {'content_id': req.get('content_id')}
+           'args': {'content_id': request.args.get('content_id')}
            })
     return ""
 
 
-def get_request():
+def get_data():
     return json.loads(request.data)
 
 

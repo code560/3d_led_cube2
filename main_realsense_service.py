@@ -26,7 +26,7 @@ class LedRawTextClient(LedRunLoop):
         super(LedRawTextClient, self).__init__()
         if sys.platform == 'win32':
             sys.stdin = codecs.getreader('shift_jis')(sys.stdin) # set input codec
-        SoundInterface.content_id = 'realsense'
+        SoundInterface.init('realsense')
 
     def on_keyboard_interrupt(self):
         q.put('abort')
