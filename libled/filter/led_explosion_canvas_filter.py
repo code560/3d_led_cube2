@@ -34,7 +34,7 @@ class LedExplosionCanvasFilter(LedCanvasFilter):
         self.param = None
         self.speeds = self.get_new_canvas()
         self.centers = self.get_new_canvas()
-        self.wav = 'asset/audio/se_explosion.wav'
+        self.wav = 'se_explosion.wav'
         self._pre_sign = -1
         self.sin = 0
 

@@ -11,7 +11,7 @@ class LedWakameCanvasFilter(LedCanvasFilter):
     def __init__(self, canvas, enable_controller=False):
         super(LedWakameCanvasFilter, self).__init__(canvas, enable_controller)
         self.t = 0
-        self.wav = 'asset/audio/bgm_wave.wav'
+        self.wav = 'bgm_wave.wav'
         SoundInterface.play(wav=self.wav, loop=True)
 
     def pre_draw(self):

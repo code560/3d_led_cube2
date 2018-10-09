@@ -11,8 +11,8 @@ class LedRollingCanvasFilter(LedCanvasFilter):
         self.offset = 0
         self.last_update = time.time()
         self.direction_value = 0.6 if down else 0.4
-        self.wav_d = 'asset/audio/se_rolldown.wav'
-        self.wav_u = 'asset/audio/se_rollup.wav'
+        self.wav_d = 'se_rolldown.wav'
+        self.wav_u = 'se_rollup.wav'
         self.last_count = 0
 
     def pre_draw(self):

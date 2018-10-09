@@ -16,7 +16,7 @@ class LedRainbowCanvasFilter(LedCanvasFilter):
         super(LedRainbowCanvasFilter, self).__init__(canvas, enable_controller)
         self.c = 0
         self.born_at = time.time()
-        self.wav = 'asset/audio/se_rainbow.wav'
+        self.wav = 'se_rainbow.wav'
         SoundInterface.play(wav=self.wav)
 
     def get_color_from_serial(self):

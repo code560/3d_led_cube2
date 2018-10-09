@@ -10,9 +10,7 @@ POST http://localhost:5701/audio/v1/play?content_id=123
 content-type: application/json
 
 {
-    "wave": "hogehoge",
-    "loop": false,
-    "stop": false,
+    "wav": "bgm_wave.wav"
 }
 
 ###
@@ -20,7 +18,9 @@ POST http://localhost:5701/audio/v1/play?content_id=123
 content-type: application/json
 
 {
-    "wave": "hogehoge",
+    "wav": "se_jump.wav",
+    "loop": true,
+    "stop": true
 }
 
 
@@ -32,7 +32,7 @@ POST http://localhost:5701/audio/v1/volume?content_id=123
 content-type: application/json
 
 {
-    "val": 2
+    "val": 0.2
 }
 
 ###

@@ -4,10 +4,9 @@
 別プロセスで音楽を再生するために作成
 
 使い方
-localhost:5701/apiに対して次のRESTをPOSTする。
+localhost:5701/audio/v1/に対して次のRESTをPOSTする。
  ※全てに共通の項目
-  content_id='コンテンツのID'
-   '00'を指定すると全てのプレイヤーへ操作を行う
+ ?content_id='コンテンツのID'
    指定のIDが存在しない場合、playのみ新しいプレイヤーを作成して再生を開始する
  /play
   wav='wavファイル名'
@@ -15,7 +14,7 @@ localhost:5701/apiに対して次のRESTをPOSTする。
   loop=True/False
    ループ再生する。
    デフォルトはFalse
-  and_stop=True/False
+  stop=True/False
    pause状態でプレイヤーを作成する。
    デフォルトはFalse。pause状態で開始するためresumeで再開する。
  /stop
@@ -44,6 +43,8 @@ from libled.util.sound_player import SoundPlayer as sp
 
 
 class SoundPlayingServer(SimpleRunLoop):
+
+    BASE_DIR = "asset/audio/"
 
     def __init__(self):
         super(SoundPlayingServer, self).__init__()
@@ -99,9 +100,9 @@ class SoundPlayingServer(SimpleRunLoop):
 
     def play(self, args):
         # get player
-        player = self.get_player(args['content_id'], False)
+        player = self.get_player(args['content_id'], True)
         if player is None:
-            logger.w('not founded content id({}).'.format(args['content_id']))
+            logger.w('null argument content id.')
             return
 
         # do play
@@ -109,10 +110,11 @@ class SoundPlayingServer(SimpleRunLoop):
         if wav is None:
             logger.w('null argument wavefile = ')
             return
+        wav = SoundPlayingServer.BASE_DIR + wav
         loop = args['loop']
 
-        and_stop = args['and_stop']
-        if and_stop:
+        stop = args['stop']
+        if stop:
             player.do_pause()
 
         player.do_play(wav, loop)
@@ -136,7 +138,7 @@ class SoundPlayingServer(SimpleRunLoop):
         # get player
         player = self.get_player(args['content_id'], True)
         if player is None:
-            logger.w('not founded content id({}).'.format(args['content_id']))
+            logger.w('null argument content id.')
             return
 
         player.set_volume(args['val'])
@@ -147,11 +149,11 @@ class SoundPlayingServer(SimpleRunLoop):
         logger.i(type(args))
         player = self.get_player(args['content_id'], True)
         if player is None:
-            logger.w('not founded content id({}).'.format(args['content_id']))
+            logger.w('null argument content id.')
             return
 
         player.do_pause()
-        logger.i('[{}]pause'.format(args[0]))
+        logger.i('[{}]pause'.format(args['content_id']))
 
     def resume(self, args):
         # get player
@@ -170,12 +172,8 @@ class SoundPlayingServer(SimpleRunLoop):
 
 app = Flask(__name__)
 tcp_port = 5701
-pull_port = 5751
 q = Queue()
 s = SoundPlayingServer()
-# zmq
-# ctx = zmq.Context()
-# pull = ctx.socket(zmq.PULL)
 
 logger.i("Collecting updates from audio server...")
 abort = False
@@ -183,52 +181,6 @@ abort = False
 
 def run():
     run_flask()
-    # zmq
-    # run_pull()
-
-# zmq
-# def run_pull():
-#     logger.d('connecting tcp://localhost:{}'.format(pull_port))
-#     pull.bind('tcp://*:{}'.format(pull_port))
-#     pool = Pool(1)
-#     pool.apply_async(parse)
-#     s.run()  # block
-#     logger.d('block out pool.')
-#     pool.close()
-#     pool.terminate()
-#     pool.join()
-#     pull.close()
-
-# zmq
-# def parse():
-#     while True:
-#         if abort:
-#             return
-#         try:
-#             msg = pull.recv_json()
-#             logger.d('pull received message = {}'.format(msg))
-
-#             func = msg.get('func')
-#             if func == 'play':
-#                 q.put({'cmd': s.play, 'args': msg.get('data')})
-#             elif func == 'stop':
-#                 q.put({'cmd': s.stop, 'args': msg.get('data')})
-#             elif func == 'volume':
-#                 q.put({'cmd': s.volume, 'args': msg.get('data')})
-#             elif func == 'pause':
-#                 q.put({'cmd': s.pause, 'args': msg.get('data')})
-#             elif func == 'resume':
-#                 q.put({'cmd': s.resume, 'args': msg.get('data')})
-#             elif func == 'init':
-#                 q.put({'cmd': s.init, 'args': msg.get('data')})
-#             else:
-#                 logger.w('not found function.')
-
-#         except KeyboardInterrupt:
-#             raise
-#         except Exception:
-#             logger.e('Unexpected error: {}'.format(str(sys.exc_info()[0])))
-#             logger.e(traceback.format_exc())
 
 
 def run_flask():
@@ -248,6 +200,7 @@ def init():
     logger.i('call init rest-api audio module.\n' + str(request.data))
     args = {'content_id': request.args.get('content_id')}
     q.put({'cmd': s.init, 'args': args})
+    return ""
 
 
 @app.route('/audio/v1/play', methods=['POST'])
@@ -257,7 +210,7 @@ def play():
     args = {'content_id': request.args.get('content_id'),
             'wav': data.get('wav'),
             'loop': data.get('loop', False),
-            'and_stop': data.get('and_stop', False)}
+            'stop': data.get('stop', False)}
     q.put({'cmd': s.play, 'args': args})
     return ""
 

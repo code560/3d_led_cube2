@@ -39,7 +39,7 @@ class SoundInterface(object):
         data_ = {
             'wav': wav,
             'loop': loop,
-            'and_stop': stop
+            'stop': stop
         }
         cls.post(func, data_=data_)
 

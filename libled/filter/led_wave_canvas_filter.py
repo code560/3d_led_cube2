@@ -10,7 +10,7 @@ class LedWaveCanvasFilter(LedCanvasFilter):
     def __init__(self, canvas):
         super(LedWaveCanvasFilter, self).__init__(canvas)
         self.born_at = time.time()
-        self.wav = 'asset/audio/bgm_wave.wav'
+        self.wav = 'bgm_wave.wav'
         SoundInterface.play(wav=self.wav, loop=True)
 
     def set_led(self, x, y, z, color):

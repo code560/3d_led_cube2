@@ -16,7 +16,7 @@ class LedExileCanvasFilter(LedCanvasFilter):
         super(LedExileCanvasFilter, self).__init__(canvas)
         self.t = 0
         self.src = self.get_new_canvas()
-        self.wav = 'asset/audio/se_space.wav'
+        self.wav = 'se_space.wav'
         SoundInterface.play(wav=self.wav, loop=True, stop=False)
 
     def get_new_canvas(self):

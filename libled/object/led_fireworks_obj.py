@@ -34,9 +34,9 @@ class LedFireworksObject(LedObject):
         self.ix = 0
         self.vs = []
         self.poss = []
-        self.wavs = ['asset/audio/se_fireworks.wav', 
-                     'asset/audio/se_fireworks2.wav',
-                     'asset/audio/se_fireworks3.wav']
+        self.wavs = ['se_fireworks.wav', 
+                     'se_fireworks2.wav',
+                     'se_fireworks3.wav']
 
     def draw(self, canvas):
         if  self.ix % 20 == 0 :

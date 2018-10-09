@@ -23,9 +23,9 @@ class LedZoomInOutCanvasFilter(LedCanvasFilter):
         self.t = 0
 
         # sound
-        self.wav = 'asset/audio/se_zoom.wav'
-        self.wav_extend = 'asset/audio/se_zoom_extend1.wav'
-        self.wav_shrink = 'asset/audio/se_zoom_shrink1.wav'
+        self.wav = 'se_zoom.wav'
+        self.wav_extend = 'se_zoom_extend1.wav'
+        self.wav_shrink = 'se_zoom_shrink1.wav'
         self.enable_loopsound = False
         if self.enable_loopsound:
             SoundInterface.play(wav=self.wav, loop=True)

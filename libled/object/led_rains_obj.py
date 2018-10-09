@@ -35,7 +35,7 @@ class LedRainsObject(LedObject):
         super(LedRainsObject, self).__init__(lifetime)
         self.set_timer(0.05)
         self.is_need_update = False
-        self.wav = 'asset/audio/se_rain.wav'
+        self.wav = 'se_rain.wav'
         SoundInterface.play(wav=self.wav, loop=True)
 
     def on_timer(self):

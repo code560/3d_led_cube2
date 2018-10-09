@@ -13,7 +13,7 @@ class LedSwayingCanvasFilter(LedCanvasFilter):
         self.born_at = time.time()
         self.dx = dx
         self.dy = dy
-        self.wav = 'asset/audio/se_wind.wav'
+        self.wav = 'se_wind.wav'
         SoundInterface.play(wav=self.wav, loop=True)
 
 

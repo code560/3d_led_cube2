@@ -15,7 +15,7 @@ class LedJumpCanvasFilter(LedCanvasFilter):
         self.last_update = time.time()
         self.initial_power = self.update_initial_power()
         self.power = self.update_initial_power()  # テキトーな上昇する力の値
-        self.wav = 'asset/audio/se_jump.wav'
+        self.wav = 'se_jump.wav'
         SoundInterface.play(wav=self.wav)
 
     def pre_draw(self):

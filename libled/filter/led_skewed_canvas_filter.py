@@ -15,7 +15,7 @@ class LedSkewedCanvasFilter(LedCanvasFilter):
         self.yt = self.zt = 0
         self.last_update = time.time()
         self.axis = axis
-        self.wav = 'asset/audio/se_swing.wav'
+        self.wav = 'se_swing.wav'
         self.ys = self.yc = 0
         self.zs = self.zc = 0
         self._pre_sign = -1
